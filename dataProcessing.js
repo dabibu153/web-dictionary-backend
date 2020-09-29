@@ -3,7 +3,14 @@ const router = express.Router();
 const fetch = require("node-fetch");
 const { oneWord } = require("./mongoDBschema.js");
 
-router.get("/getMongoData", async (req, res) => {});
+router.get("/getMongoData", async (req, res) => {
+  const briefData = await oneWord.find(
+    {},
+    { name: 1, category: { type: 1, defAndEg: { $slice: 1 } } }
+  );
+  const correctArray = briefData.reverse();
+  res.send(correctArray);
+});
 
 router.post("/searchOxford", async (req, res) => {
   console.log(req.body.searchKeyWord);
@@ -33,39 +40,60 @@ router.post("/searchOxford", async (req, res) => {
   );
 
   const jsonData = await apiResult.json();
+  let origin = "nil";
+  if (jsonData.results[0].lexicalEntries[0].entries[0].etymologies) {
+    origin = jsonData.results[0].lexicalEntries[0].entries[0].etymologies[0];
+  } else {
+    origin = "nil";
+  }
+
   let category = [];
-  jsonData.results[0].lexicalEntries.map((textType) => {
+
+  jsonData.results[0].lexicalEntries.map((categoryType) => {
     let defAndEg = [];
 
-    let temp = 0;
+    categoryType.entries[0].senses.map((defEg) => {
+      let example = "nil";
+      if (defEg.examples) {
+        example = defEg.examples[0].text;
+      } else {
+        example = "nil";
+      }
 
-    if (textType.entries[0].senses.length > 3) {
-      temp = 3;
-    } else {
-      temp = textType.entries[0].senses.length();
-    }
-
-    for (let i = 0; i <= temp; i++) {
-      tempObject = {
-        def: textType.entries[0].senses[i].definitions[0],
-        eg: textType.entries[0].senses[i].examples[0].text,
+      const tempObj = {
+        def: defEg.definitions[0],
+        eg: example,
       };
-      defAndEg.push(tempObject);
-    }
+      defAndEg.push(tempObj);
+    });
 
-    let textDataBlock = {
-      type: textType.lexicalCategory.id,
+    categoryObject = {
+      type: categoryType.lexicalCategory.id,
       defAndEg: defAndEg,
     };
-    category.push(textDataBlock);
+
+    category.push(categoryObject);
   });
 
   const finalWordObject = {
-    name: jsonData.results[0].id,
-    origin: jsonData.results[0].lexicalEntries[0].entries[0].etymologies[0],
+    name: jsonData.id,
+    origin: origin,
     category: category,
   };
   res.send(finalWordObject);
+
+  const oldWord = await oneWord.findOne({ name: finalWordObject.name });
+
+  if (oldWord) {
+    console.log("word already exists");
+  } else {
+    const newWord = new oneWord({
+      name: finalWordObject.name,
+      origin: finalWordObject.origin,
+      category: finalWordObject.category,
+    });
+    await newWord.save();
+  }
 });
 
 module.exports = router;

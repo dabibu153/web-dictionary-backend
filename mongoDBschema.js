@@ -1,10 +1,13 @@
 const mongoose = require("mongoose");
 
 const wordSchema = new mongoose.Schema({
+  name: {
+    type: String,
+  },
   origin: {
     type: String,
   },
-  lexicalCategory: {
+  category: {
     type: Array,
   },
 });

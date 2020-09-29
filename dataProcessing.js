@@ -12,6 +12,24 @@ router.get("/getMongoData", async (req, res) => {
   res.send(correctArray);
 });
 
+router.post("/deleteMongoData", async (req, res) => {
+  console.log(req.body.word);
+  const result = await oneWord.deleteOne({ name: req.body.word });
+  console.log(result);
+
+  const briefData = await oneWord.find(
+    {},
+    { name: 1, category: { type: 1, defAndEg: { $slice: 1 } } }
+  );
+  const correctArray = briefData.reverse();
+  res.send(correctArray);
+});
+
+router.post("/getDetails", async (req, res) => {
+  const wordDetails = await oneWord.findOne({ name: req.body.word });
+  res.send(wordDetails);
+});
+
 router.post("/searchOxford", async (req, res) => {
   console.log(req.body.searchKeyWord);
   const rootForm = await fetch(

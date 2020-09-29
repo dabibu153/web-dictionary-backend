@@ -4,10 +4,7 @@ const fetch = require("node-fetch");
 const { oneWord } = require("./mongoDBschema.js");
 
 router.get("/getMongoData", async (req, res) => {
-  const briefData = await oneWord.find(
-    {},
-    { name: 1, category: { type: 1, defAndEg: { $slice: 1 } } }
-  );
+  const briefData = await oneWord.find({}, { name: 1, category: 1 });
   const correctArray = briefData.reverse();
   res.send(correctArray);
 });
@@ -17,10 +14,7 @@ router.post("/deleteMongoData", async (req, res) => {
   const result = await oneWord.deleteOne({ name: req.body.word });
   console.log(result);
 
-  const briefData = await oneWord.find(
-    {},
-    { name: 1, category: { type: 1, defAndEg: { $slice: 1 } } }
-  );
+  const briefData = await oneWord.find({}, { name: 1, category: 1 });
   const correctArray = briefData.reverse();
   res.send(correctArray);
 });
@@ -31,7 +25,6 @@ router.post("/getDetails", async (req, res) => {
 });
 
 router.post("/searchOxford", async (req, res) => {
-  console.log(req.body.searchKeyWord);
   const rootForm = await fetch(
     `https://od-api.oxforddictionaries.com/api/v2/lemmas/en-us/${req.body.searchKeyWord}`,
     {
@@ -98,7 +91,6 @@ router.post("/searchOxford", async (req, res) => {
     origin: origin,
     category: category,
   };
-  res.send(finalWordObject);
 
   const oldWord = await oneWord.findOne({ name: finalWordObject.name });
 
@@ -111,6 +103,7 @@ router.post("/searchOxford", async (req, res) => {
       category: finalWordObject.category,
     });
     await newWord.save();
+    res.send(finalWordObject);
   }
 });
 

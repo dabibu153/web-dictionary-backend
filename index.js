@@ -6,7 +6,10 @@ const app = express();
 const dataProcessing = require("./dataProcessing");
 
 mongoose
-  .connect("mongodb://localhost/dictionary")
+  .connect(
+    "mongodb+srv://test-user153:qwerty123@cluster0.jrl5u.mongodb.net/dictionaryData?retryWrites=true&w=majority"
+    // "mongodb://localhost/dictionary"
+  )
   .then((res) => console.log("connected to DB..."))
   .catch((err) => console.log("something is wrong..."));
 

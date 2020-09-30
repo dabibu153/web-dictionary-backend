@@ -1,3 +1,4 @@
+const { json } = require("body-parser");
 const express = require("express");
 const router = express.Router();
 const fetch = require("node-fetch");
@@ -36,74 +37,78 @@ router.post("/searchOxford", async (req, res) => {
     }
   );
   const jsonRootForm = await rootForm.json();
-  const finalRoot = await jsonRootForm.results[0].lexicalEntries[0]
-    .inflectionOf[0].id;
-
-  const apiResult = await fetch(
-    `https://od-api.oxforddictionaries.com/api/v2/entries/en-us/${finalRoot}?fields=etymologies,definitions,examples`,
-    {
-      method: "GET",
-      headers: {
-        app_id: "fd907da5",
-        app_key: "5904376a3306a62c2c1d968070b50f8e",
-      },
-    }
-  );
-
-  const jsonData = await apiResult.json();
-  let origin = "nil";
-  if (jsonData.results[0].lexicalEntries[0].entries[0].etymologies) {
-    origin = jsonData.results[0].lexicalEntries[0].entries[0].etymologies[0];
+  if (jsonRootForm.error) {
+    res.send("word not found");
   } else {
-    origin = "nil";
-  }
+    const finalRoot = await jsonRootForm.results[0].lexicalEntries[0]
+      .inflectionOf[0].id;
 
-  let category = [];
-
-  jsonData.results[0].lexicalEntries.map((categoryType) => {
-    let defAndEg = [];
-
-    categoryType.entries[0].senses.map((defEg) => {
-      let example = "nil";
-      if (defEg.examples) {
-        example = defEg.examples[0].text;
-      } else {
-        example = "nil";
+    const apiResult = await fetch(
+      `https://od-api.oxforddictionaries.com/api/v2/entries/en-us/${finalRoot}?fields=etymologies,definitions,examples`,
+      {
+        method: "GET",
+        headers: {
+          app_id: "fd907da5",
+          app_key: "5904376a3306a62c2c1d968070b50f8e",
+        },
       }
+    );
 
-      const tempObj = {
-        def: defEg.definitions[0],
-        eg: example,
+    const jsonData = await apiResult.json();
+    let origin = "nil";
+    if (jsonData.results[0].lexicalEntries[0].entries[0].etymologies) {
+      origin = jsonData.results[0].lexicalEntries[0].entries[0].etymologies[0];
+    } else {
+      origin = "nil";
+    }
+
+    let category = [];
+
+    jsonData.results[0].lexicalEntries.map((categoryType) => {
+      let defAndEg = [];
+
+      categoryType.entries[0].senses.map((defEg) => {
+        let example = "nil";
+        if (defEg.examples) {
+          example = defEg.examples[0].text;
+        } else {
+          example = "nil";
+        }
+
+        const tempObj = {
+          def: defEg.definitions[0],
+          eg: example,
+        };
+        defAndEg.push(tempObj);
+      });
+
+      categoryObject = {
+        type: categoryType.lexicalCategory.id,
+        defAndEg: defAndEg,
       };
-      defAndEg.push(tempObj);
+
+      category.push(categoryObject);
     });
 
-    categoryObject = {
-      type: categoryType.lexicalCategory.id,
-      defAndEg: defAndEg,
+    const finalWordObject = {
+      name: jsonData.id,
+      origin: origin,
+      category: category,
     };
 
-    category.push(categoryObject);
-  });
+    const oldWord = await oneWord.findOne({ name: finalWordObject.name });
 
-  const finalWordObject = {
-    name: jsonData.id,
-    origin: origin,
-    category: category,
-  };
-
-  const oldWord = await oneWord.findOne({ name: finalWordObject.name });
-
-  if (oldWord) {
-    console.log("word already exists");
-  } else {
-    const newWord = new oneWord({
-      name: finalWordObject.name,
-      origin: finalWordObject.origin,
-      category: finalWordObject.category,
-    });
-    await newWord.save();
-    res.send(finalWordObject);
+    if (oldWord) {
+      console.log("word already exists");
+    } else {
+      const newWord = new oneWord({
+        name: finalWordObject.name,
+        origin: finalWordObject.origin,
+        category: finalWordObject.category,
+      });
+      await newWord.save();
+      res.send(finalWordObject);
+    }
   }
 });
 

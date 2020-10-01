@@ -99,7 +99,13 @@ router.post("/searchOxford", async (req, res) => {
     const oldWord = await oneWord.findOne({ name: finalWordObject.name });
 
     if (oldWord) {
-      console.log("word already exists");
+      const result1 = await oneWord.deleteOne({ name: finalWordObject.name });
+      const newWord = new oneWord({
+        name: finalWordObject.name,
+        origin: finalWordObject.origin,
+        category: finalWordObject.category,
+      });
+      await newWord.save();
       res.send(finalWordObject);
     } else {
       const newWord = new oneWord({

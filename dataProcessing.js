@@ -100,6 +100,7 @@ router.post("/searchOxford", async (req, res) => {
 
     if (oldWord) {
       console.log("word already exists");
+      res.send(finalWordObject);
     } else {
       const newWord = new oneWord({
         name: finalWordObject.name,
